@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(const MyApp());
@@ -165,6 +166,11 @@ class _WriteScreenState extends State<WriteScreen> {
   late ValueNotifier<dynamic> selectedImgBtmleft;
   late ValueNotifier<dynamic> selectedImgBtmright;
 
+  TextEditingController inputTitleController = TextEditingController();
+  final formKey = GlobalKey<FormState>();
+
+  int selectedDate = 0;
+
   @override
   void initState() {
     selectedImgTopleft = ValueNotifier(null);
@@ -197,26 +203,128 @@ class _WriteScreenState extends State<WriteScreen> {
         elevation: 0,
         backgroundColor: Colors.white,
       ),
-      body: Container(
-        margin: EdgeInsets.all(8),
-        width: double.maxFinite,
-        height: MediaQuery.of(context).size.width,
-        child: GridView(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          physics: const NeverScrollableScrollPhysics(),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectImage(selectedImage: selectedImgTopleft),
-            SelectImage(selectedImage: selectedImgTopright),
-            SelectImage(selectedImage: selectedImgBtmleft),
-            SelectImage(selectedImage: selectedImgBtmright),
+            // 이미지 선택 위젯
+            Container(
+              margin: EdgeInsets.all(8),
+              width: double.maxFinite,
+              height: MediaQuery.of(context).size.width,
+              child: GridView(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  SelectImage(selectedImage: selectedImgTopleft),
+                  SelectImage(selectedImage: selectedImgTopright),
+                  SelectImage(selectedImage: selectedImgBtmleft),
+                  SelectImage(selectedImage: selectedImgBtmright),
+                ],
+              ),
+            ),
+            // 텍스트 작성 필드
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '한 줄 일기',
+                style: GoogleFonts.nanumPenScript(
+                  textStyle: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Form(
+                key: formKey,
+                child: TextFormField(
+                  decoration: InputDecoration(
+                    hintText: '한 줄 일기를 작성해주세요(최대 8글자)',
+                    hintStyle: GoogleFonts.nanumPenScript(fontSize: 16),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xffE1E1E1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.black),
+                    ),
+                  ),
+                  maxLength: 8,
+                  controller: inputTitleController,
+                ),
+              ),
+            ),
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '날짜',
+                style: GoogleFonts.nanumPenScript(
+                  textStyle: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+            // 날짜 선택 버튼
+            GestureDetector(
+              onTap: () => _selectedDate(context),
+              child: Container(
+                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                alignment: Alignment.centerLeft,
+                width: double.maxFinite,
+                height: 56,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Color(0xffE1E1E1)),
+                ),
+                child: Container(
+                  margin: EdgeInsets.only(left: 8),
+                  child: selectedDate == 0
+                      ? Text(
+                          '날짜를 선택해주세요',
+                          style: GoogleFonts.nanumPenScript(
+                            textStyle: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xffACACAC),
+                            ),
+                          ),
+                        )
+                      : Text(
+                          DateFormat('yyyy.MM.dd').format(
+                            DateTime.fromMillisecondsSinceEpoch(selectedDate),
+                          ),
+                    style: GoogleFonts.nanumPenScript(
+                      textStyle: TextStyle(fontSize: 24, color: Colors.black)
+                    ),
+                        ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future _selectedDate(BuildContext context) async {
+    // 날짜를 선택하는 함수
+    final DateTime? selected = await showDatePicker(
+      context: context,
+      firstDate: DateTime(1990),
+      lastDate: DateTime(2100),
+      initialDate: DateTime.now(),
+    );
+
+    if (selected != null) {
+      selectedDate = selected.millisecondsSinceEpoch;
+      setState(() {});
+    }
   }
 }
 
