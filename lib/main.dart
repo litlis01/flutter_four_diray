@@ -61,7 +61,10 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             Container(
               width: double.maxFinite,
-              height: MediaQuery.of(context).size.width,
+              height: MediaQuery
+                  .of(context)
+                  .size
+                  .width,
               child: GridView(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -80,7 +83,10 @@ class _MainScreenState extends State<MainScreen> {
             Transform.rotate(
               angle: 60 * math.pi / 180,
               child: Container(
-                width: MediaQuery.of(context).size.width / 4,
+                width: MediaQuery
+                    .of(context)
+                    .size
+                    .width / 4,
                 height: 120,
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(0.5),
@@ -133,7 +139,8 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                   child: Icon(Icons.more_vert, color: Colors.white),
                 ),
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                itemBuilder: (BuildContext context) =>
+                <PopupMenuEntry<String>>[
                   PopupMenuItem<String>(child: Text('수정하기'), onTap: () {}),
                   PopupMenuItem<String>(child: Text('삭제하기'), onTap: () {}),
                 ],
@@ -211,7 +218,10 @@ class _WriteScreenState extends State<WriteScreen> {
             Container(
               margin: EdgeInsets.all(8),
               width: double.maxFinite,
-              height: MediaQuery.of(context).size.width,
+              height: MediaQuery
+                  .of(context)
+                  .size
+                  .width,
               child: GridView(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -245,6 +255,7 @@ class _WriteScreenState extends State<WriteScreen> {
               child: Form(
                 key: formKey,
                 child: TextFormField(
+                  validator: (val) => titleValidate(val) ,
                   decoration: InputDecoration(
                     hintText: '한 줄 일기를 작성해주세요(최대 8글자)',
                     hintStyle: GoogleFonts.nanumPenScript(fontSize: 16),
@@ -287,23 +298,44 @@ class _WriteScreenState extends State<WriteScreen> {
                   margin: EdgeInsets.only(left: 8),
                   child: selectedDate == 0
                       ? Text(
-                          '날짜를 선택해주세요',
-                          style: GoogleFonts.nanumPenScript(
-                            textStyle: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xffACACAC),
-                            ),
-                          ),
-                        )
-                      : Text(
-                          DateFormat('yyyy.MM.dd').format(
-                            DateTime.fromMillisecondsSinceEpoch(selectedDate),
-                          ),
+                    '날짜를 선택해주세요',
                     style: GoogleFonts.nanumPenScript(
-                      textStyle: TextStyle(fontSize: 24, color: Colors.black)
+                      textStyle: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xffACACAC),
+                      ),
                     ),
-                        ),
+                  )
+                      : Text(
+                    DateFormat('yyyy.MM.dd').format(
+                      DateTime.fromMillisecondsSinceEpoch(selectedDate),
+                    ),
+                    style: GoogleFonts.nanumPenScript(
+                      textStyle: TextStyle(
+                        fontSize: 24,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
                 ),
+              ),
+            ),
+            Container(
+              width: double.maxFinite,
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+              child: ElevatedButton(
+                onPressed: () => validateInput(),
+                child: Container(
+                  margin: EdgeInsets.all(16),
+                  child: Text(
+                    '저장하기',
+                    style: GoogleFonts.nanumPenScript(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
               ),
             ),
           ],
@@ -324,6 +356,49 @@ class _WriteScreenState extends State<WriteScreen> {
     if (selected != null) {
       selectedDate = selected.millisecondsSinceEpoch;
       setState(() {});
+    }
+  }
+
+  dynamic titleValidate(val) {
+    if(val.isEmpty){
+      return '제목을 입력해주세요';
+    }
+    return null;
+  }
+
+  void validateInput() {
+    if (formKey.currentState!.validate() && isImgFieldValidate() &&
+        isDateValidate()){
+      // savedDate();
+    }
+  }
+
+  bool isImgFieldValidate() {
+    bool isImgSelected = selectedImgTopleft.value != null &&
+        selectedImgBtmright.value != null &&
+        selectedImgTopright.value != null && selectedImgBtmleft.value != null;
+
+    if (isImgSelected) {
+      return true;
+    } else {
+      final snackBar = SnackBar(
+        content: Text('이미지를 선택해주세요'),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      return false;
+    }
+  }
+
+  bool isDateValidate() {
+    bool isDateValidate = selectedDate != 0;
+    if (isDateValidate) {
+      return true;
+    } else {
+      final snackBar = SnackBar(
+        content: Text('날짜를 선택해주세요'),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      return false;
     }
   }
 }
@@ -347,16 +422,19 @@ class _SelectImageState extends State<SelectImage> {
           color: Color(0xffF4F4F4),
         ),
         child: widget.selectedImage?.value == null
-            // 선택된 이미지가 없으면
+        // 선택된 이미지가 없으면
             ? Icon(Icons.image, color: Color(0xff868686))
-            // 선택된 이미지가 있으면
+        // 선택된 이미지가 있으면
             : Container(
-                height: MediaQuery.of(context).size.width,
-                child: Image.file(
-                  widget.selectedImage!.value,
-                  fit: BoxFit.cover,
-                ),
-              ),
+          height: MediaQuery
+              .of(context)
+              .size
+              .width,
+          child: Image.file(
+            widget.selectedImage!.value,
+            fit: BoxFit.cover,
+          ),
+        ),
       ),
       onTap: () => getGalleryImage(),
     );
