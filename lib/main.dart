@@ -1,10 +1,13 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+
+import 'database_helper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,6 +40,14 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  late Future<List<DiaryModel>> diaryList;
+
+  @override
+  void initState() {
+    super.initState();
+    diaryList = setDiaryData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,108 +66,164 @@ class _MainScreenState extends State<MainScreen> {
         elevation: 0,
       ),
       body: Container(
-        color: Color(0xffFAF9E6),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: double.maxFinite,
-              height: MediaQuery
-                  .of(context)
-                  .size
-                  .width,
-              child: GridView(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  Container(color: Colors.black),
-                  Container(color: Colors.white),
-                  Container(color: Colors.yellow),
-                  Container(color: Colors.blue),
-                ],
-              ),
-            ),
-            Transform.rotate(
-              angle: 60 * math.pi / 180,
-              child: Container(
-                width: MediaQuery
-                    .of(context)
-                    .size
-                    .width / 4,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.all(Radius.elliptical(70, 85)),
-                ),
-              ),
-            ),
-            Text(
-              '제목입니다.',
-              style: GoogleFonts.nanumPenScript(
-                textStyle: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            // 날짜
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Container(
-                  margin: EdgeInsets.all(8),
-                  child: Text(
-                    '2025.09.16',
-                    style: GoogleFonts.nanumPenScript(
-                      textStyle: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
+        color: const Color(0xffFAF9E6),
+        child: FutureBuilder(
+          future: diaryList,
+          builder: (context, snapshot) {
+            if (snapshot.hasData) {
+              return ListView.builder(
+                itemCount: snapshot.data!.length,
+                itemBuilder: (context, index) {
+                  DiaryModel diaryModel = snapshot.data![index];
+                  return Container(
+                    margin: EdgeInsets.only(top: 24),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: double.maxFinite,
+                          height: MediaQuery.of(context).size.width,
+                          child: GridView(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 8,
+                                  mainAxisSpacing: 8,
+                                ),
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: [
+                              Image.memory(
+                                diaryModel.imageTopLeft,
+                                fit: BoxFit.cover,
+                              ),
+                              Image.memory(
+                                diaryModel.imageTopRight,
+                                fit: BoxFit.cover,
+                              ),
+                              Image.memory(
+                                diaryModel.imageBtmLeft,
+                                fit: BoxFit.cover,
+                              ),
+                              Image.memory(
+                                diaryModel.imageBtmRight,
+                                fit: BoxFit.cover,
+                              ),
+                            ],
+                          ),
+                        ),
+                        Transform.rotate(
+                          angle: 60 * math.pi / 180,
+                          child: Container(
+                            width: MediaQuery.of(context).size.width / 4,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              borderRadius: BorderRadius.all(
+                                Radius.elliptical(70, 85),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Text(
+                          diaryModel.title,
+                          style: GoogleFonts.nanumPenScript(
+                            textStyle: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        // 날짜
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Container(
+                              margin: EdgeInsets.all(8),
+                              child: Text(
+                                DateFormat('yyyy.MM.dd').format(
+                                  DateTime.fromMillisecondsSinceEpoch(
+                                    diaryModel.date,
+                                  ),
+                                ),
+                                style: GoogleFonts.nanumPenScript(
+                                  textStyle: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 수정하기, 삭제하기
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: PopupMenuButton<String>(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                              ),
+                              child: Icon(Icons.more_vert, color: Colors.white),
+                            ),
+                            itemBuilder: (BuildContext context) =>
+                                <PopupMenuEntry<String>>[
+                                  PopupMenuItem<String>(
+                                    child: Text('수정하기'),
+                                    onTap: () {},
+                                  ),
+                                  PopupMenuItem<String>(
+                                    child: Text('삭제하기'),
+                                    onTap: () {},
+                                  ),
+                                ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ),
+                  );
+                },
+              );
+            }
+            return const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
               ),
-            ),
-            // 수정하기, 삭제하기
-            Positioned(
-              top: 8,
-              right: 8,
-              child: PopupMenuButton<String>(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
-                  ),
-                  child: Icon(Icons.more_vert, color: Colors.white),
-                ),
-                itemBuilder: (BuildContext context) =>
-                <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(child: Text('수정하기'), onTap: () {}),
-                  PopupMenuItem<String>(child: Text('삭제하기'), onTap: () {}),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
-        onPressed: () {
-          Navigator.of(context).pushNamed('/write');
+        onPressed: () async {
+          var result = await Navigator.of(context).pushNamed('/write');
+          if (result != null) {
+            updateData(result);
+          }
         },
         child: Icon(Icons.add, color: Colors.white),
       ),
     );
+  }
+
+  void updateData(var result) async {
+    if (result == "COMPLETED_UPDATE") {
+      diaryList = setDiaryData();
+      setState(() {});
+    }
+  }
+
+  Future<List<DiaryModel>> setDiaryData() async {
+    await DatabaseHelper().initDatabase();
+    Future<List<DiaryModel>> diaryList = DatabaseHelper().getAllInfo();
+    return diaryList;
   }
 }
 
@@ -218,10 +285,7 @@ class _WriteScreenState extends State<WriteScreen> {
             Container(
               margin: EdgeInsets.all(8),
               width: double.maxFinite,
-              height: MediaQuery
-                  .of(context)
-                  .size
-                  .width,
+              height: MediaQuery.of(context).size.width,
               child: GridView(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
@@ -255,7 +319,7 @@ class _WriteScreenState extends State<WriteScreen> {
               child: Form(
                 key: formKey,
                 child: TextFormField(
-                  validator: (val) => titleValidate(val) ,
+                  validator: (val) => titleValidate(val),
                   decoration: InputDecoration(
                     hintText: '한 줄 일기를 작성해주세요(최대 8글자)',
                     hintStyle: GoogleFonts.nanumPenScript(fontSize: 16),
@@ -298,25 +362,25 @@ class _WriteScreenState extends State<WriteScreen> {
                   margin: EdgeInsets.only(left: 8),
                   child: selectedDate == 0
                       ? Text(
-                    '날짜를 선택해주세요',
-                    style: GoogleFonts.nanumPenScript(
-                      textStyle: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xffACACAC),
-                      ),
-                    ),
-                  )
+                          '날짜를 선택해주세요',
+                          style: GoogleFonts.nanumPenScript(
+                            textStyle: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xffACACAC),
+                            ),
+                          ),
+                        )
                       : Text(
-                    DateFormat('yyyy.MM.dd').format(
-                      DateTime.fromMillisecondsSinceEpoch(selectedDate),
-                    ),
-                    style: GoogleFonts.nanumPenScript(
-                      textStyle: TextStyle(
-                        fontSize: 24,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
+                          DateFormat('yyyy.MM.dd').format(
+                            DateTime.fromMillisecondsSinceEpoch(selectedDate),
+                          ),
+                          style: GoogleFonts.nanumPenScript(
+                            textStyle: TextStyle(
+                              fontSize: 24,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -360,30 +424,57 @@ class _WriteScreenState extends State<WriteScreen> {
   }
 
   dynamic titleValidate(val) {
-    if(val.isEmpty){
+    if (val.isEmpty) {
       return '제목을 입력해주세요';
     }
     return null;
   }
 
   void validateInput() {
-    if (formKey.currentState!.validate() && isImgFieldValidate() &&
-        isDateValidate()){
-      // savedDate();
+    if (formKey.currentState!.validate() &&
+        isImgFieldValidate() &&
+        isDateValidate()) {
+      saveData();
+    }
+  }
+
+  void saveData() async {
+    DiaryModel diaryModel = DiaryModel(
+      title: inputTitleController.text,
+      imageTopLeft: await selectedImgTopleft.value!.readAsBytes(),
+      imageTopRight: await selectedImgTopright.value!.readAsBytes(),
+      imageBtmLeft: await selectedImgBtmleft.value!.readAsBytes(),
+      imageBtmRight: await selectedImgBtmright.value!.readAsBytes(),
+      date: selectedDate,
+    );
+
+    try {
+      await DatabaseHelper().initDatabase();
+      int id = await DatabaseHelper().insertInfo(diaryModel);
+      print('저장 성공 id: $id'); // <- 확인용
+
+      final snackBar = SnackBar(content: Text('일기가 저장되었습니다'));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+
+      Navigator.pop(context, "COMPLETED_UPDATE");
+    } catch (e) {
+      print('DB insert 실패: $e');
+      final snackBar = SnackBar(content: Text('일기 저장에 실패했습니다'));
+      ScaffoldMessenger.of(context).showSnackBar(snackBar);
     }
   }
 
   bool isImgFieldValidate() {
-    bool isImgSelected = selectedImgTopleft.value != null &&
+    bool isImgSelected =
+        selectedImgTopleft.value != null &&
         selectedImgBtmright.value != null &&
-        selectedImgTopright.value != null && selectedImgBtmleft.value != null;
+        selectedImgTopright.value != null &&
+        selectedImgBtmleft.value != null;
 
     if (isImgSelected) {
       return true;
     } else {
-      final snackBar = SnackBar(
-        content: Text('이미지를 선택해주세요'),
-      );
+      final snackBar = SnackBar(content: Text('이미지를 선택해주세요'));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
       return false;
     }
@@ -394,9 +485,7 @@ class _WriteScreenState extends State<WriteScreen> {
     if (isDateValidate) {
       return true;
     } else {
-      final snackBar = SnackBar(
-        content: Text('날짜를 선택해주세요'),
-      );
+      final snackBar = SnackBar(content: Text('날짜를 선택해주세요'));
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
       return false;
     }
@@ -422,19 +511,16 @@ class _SelectImageState extends State<SelectImage> {
           color: Color(0xffF4F4F4),
         ),
         child: widget.selectedImage?.value == null
-        // 선택된 이미지가 없으면
+            // 선택된 이미지가 없으면
             ? Icon(Icons.image, color: Color(0xff868686))
-        // 선택된 이미지가 있으면
+            // 선택된 이미지가 있으면
             : Container(
-          height: MediaQuery
-              .of(context)
-              .size
-              .width,
-          child: Image.file(
-            widget.selectedImage!.value,
-            fit: BoxFit.cover,
-          ),
-        ),
+                height: MediaQuery.of(context).size.width,
+                child: Image.file(
+                  widget.selectedImage!.value,
+                  fit: BoxFit.cover,
+                ),
+              ),
       ),
       onTap: () => getGalleryImage(),
     );
@@ -450,5 +536,49 @@ class _SelectImageState extends State<SelectImage> {
       setState(() {});
       return;
     }
+  }
+}
+
+class DiaryModel {
+  int? id;
+  String title;
+  Uint8List imageTopLeft;
+  Uint8List imageTopRight;
+  Uint8List imageBtmLeft;
+  Uint8List imageBtmRight;
+  int date;
+
+  DiaryModel({
+    this.id,
+    required this.title,
+    required this.imageTopLeft,
+    required this.imageTopRight,
+    required this.imageBtmLeft,
+    required this.imageBtmRight,
+    required this.date,
+  });
+
+  factory DiaryModel.fromMap(Map<String, dynamic> map) {
+    return DiaryModel(
+      id: map['id'],
+      title: map['title'],
+      imageTopLeft: map['imageTopLeft'],
+      imageTopRight: map['imageTopRight'],
+      imageBtmLeft: map['imageBtmLeft'],
+      imageBtmRight: map['imageBtmRight'],
+      date: map['date'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'imageTopLeft': imageTopLeft,
+      'imageTopRight': imageTopRight,
+      'imageBtmLeft': imageBtmLeft,
+      'imageBtmRight': imageBtmRight,
+      'date': date,
+    };
   }
 }
